@@ -1,0 +1,192 @@
+#############################################################################
+#
+# Gert's zshrc dotfile
+# ~~~~~~~~~~~~~~~~~~~~
+#
+# Prerequisites: This dotfile assumes you have a few useful tools
+# installed already:
+#
+# Essential tools:
+#
+#  - XCode cli        - `xcode-select --install`
+#  - homebrew         - https://brew.sh/
+#
+#  Recommended tools to make your zsh shine:
+#
+#  - PowerLevel10k    - https://github.com/romkatv/powerlevel10k
+#  - all the colours! - https://github.com/zsh-users/zsh-syntax-highlighting
+#  - auto suggestions - https://github.com/zsh-users/zsh-autosuggestions/
+#  - nerd fonts       - install one from https://www.nerdfonts.com
+#  - colorls          - `gem install --user-install colorls`
+#
+# Further tools that may be useful for a typical dev environment:
+#
+# Package and source code management:
+#  - git              - `brew install git`
+#  - asdf             - `brew install asdf`
+#  - pre-commit       - `brew install pre-commit`
+# 
+# Python:
+#  - python           - `brew install python`
+#  - pyenv            - `brew install pyenv` (https://github.com/pyenv/pyenv)
+#  - python pipx      - `brew install pipx` (https://github.com/pypa/pipx)
+#  - python poetry    - `pipx install poetry` (https://python-poetry.org)
+#
+# AWS tools:
+#  - awscli           - `brew install awscli`
+#  - aws-vault        - `brew install --cask aws-vault`
+#
+# JS & JSON:
+#  - jq               - `brew install jq`
+#  - nodejs           - `asdf plugin add nodejs`
+#  - nvm              - see https://github.com/nvm-sh/nvm
+#
+# Virtual Machines: 
+#  - Docker           - see https://www.docker.com/
+#  - Vagrant          - `brew install hashicorp/tap/hashicorp-vagrant`
+#  - QEMU             - `brew install qemu` (but see https://mac.getutm.app/)
+#  - vagrant-qemu     - `vagrant plugin install vagrant-qemu`
+#
+# BTW, just because I always forget this, this is the order in which zsh
+# reads its startup/shutdown files (taken from `man zshall`)
+#
+# Note: If ZDOTDIR is not set, HOME is used instead.
+#
+# 1. /etc/zshenv            # this can't be overridden
+# 2. $ZDOTDIR/.zshenv       # for all shells
+# 3. /etc/zprofile          # for login shells
+# 4. $ZDOTDIR/.zprofile     # for login shells
+# 5. /etc/zshrc             # for interactive shells
+# 6. $ZDOTDIR/.zshrc        # for interactive shells  <-- you are here
+# 7. /etc/zlogin            # for login shells
+# 8. $ZDOTDIR/.zlogin       # for login shells
+#
+#############################################################################
+
+# don't complain when doing sudo -s
+# This is considered Bad Practice™ I think, but also seems the only way to
+# deal with the issue of zcompinit complaining about "insecure directories"
+# (when you `sudo -s` you inherit the parent user's environment, which makes
+# zcompinit read files that aren't owned by root).
+ZSH_DISABLE_COMPFIX=true
+
+#############################################################################
+# Configure the awesomeness of Powerlevel10k
+# See https://github.com/romkatv/powerlevel10k
+# See $HOME/.p10k.zsh for all the configuration options.
+#############################################################################
+
+
+#############################################################################
+# Support for the Warp terminal — automatically 'warpify' subshells
+#############################################################################
+printf '\eP$f{"hook": "SourcedRcFileForWarp", "value": { "shell": "zsh" }}\x9c'
+
+#############################################################################
+# Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
+# Initialization code that may require console input (password prompts, [y/n]
+# confirmations, etc.) must go above this block; everything else may go below.
+#############################################################################
+if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+fi
+
+if [ -r $(brew --prefix)/opt/powerlevel10k ]; then
+    # location of the theme depends on the version you've got installed
+    if [ -f $(brew --prefix)/opt/powerlevel10k/powerlevel10k.zsh-theme ]; then
+        source $(brew --prefix)/opt/powerlevel10k/powerlevel10k.zsh-theme
+    elif [ -f $(brew --prefix)/opt/powerlevel10k/share/powerlevel10k/powerlevel10k.zsh-theme ]; then
+        source $(brew --prefix)/opt/powerlevel10k/share/powerlevel10k/powerlevel10k.zsh-theme
+    fi
+fi
+
+# To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
+[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+
+
+#############################################################################
+# some basic stuff
+#############################################################################
+
+# pretty colours for ls
+if command -v colorls &> /dev/null; then
+    alias ls="colorls"
+else
+    alias ls="ls -G --color=auto"
+fi
+
+# set terminal title for macOS terminal
+precmd () {print -Pn "\e]0;%n@%m  %~\a"}
+
+# use 1Password ssh-agent stuff. This assumes you have a symbolic link from
+# ~/Library/Group\ Containers/2BUA8C4S2C.com.1password/ to ~/.1password
+export SSH_AUTH_SOCK=$HOME/.1password/t/agent.sock
+
+#############################################################################
+# Configure completion magic
+#############################################################################
+
+# Add zsh functions from stuff that homebrew installed
+if type brew &>/dev/null; then
+  FPATH=$(brew --prefix)/share/zsh/site-functions${FPATH+:$FPATH}
+fi
+
+# python poetry completions
+if [ -f $HOME/.zsh/completion/_poetry ]; then
+    fpath=($HOME/.zsh/completion $fpath)
+else
+    mkdir -p $HOME/.zsh/completion
+    $HOME/.local/bin/poetry completions zsh > $HOME/.zsh/completion/_poetry
+    fpath=($HOME/.zsh/completion $fpath)
+fi
+
+# Add docker zsh completion functions if we have Docker Desktop
+if [ -d /Applications/Docker.app ]; then
+    mkdir -p $HOME/.zsh/completion
+    FPATH="$HOME/.zsh/completion${FPATH+:$FPATH}"
+    [ -f $HOME/.zsh/completion/_docker ] || ln -s /Applications/Docker.app/Contents/Resources/etc/docker.zsh-completion $HOME/.zsh/completion/_docker || true
+    [ -f $HOME/.zsh/completion/_docker-compose ] || ln -s /Applications/Docker.app/Contents/Resources/etc/docker-compose.zsh-completion $HOME/.zsh/completion/_docker-compose
+fi
+
+# if we have 1password-cli, do the completion thing - but only if op can run without complaining
+# (e.g. after doing `sudo -s` 1Password can't run, so the if catches that issue)
+if command -v op &> /dev/null && op whoami > /dev/null 2>&1; then
+    eval "$(op completion zsh)"
+    compdef _op op
+fi
+
+# Vagrant added the following for autocompletion support
+# with `vagrant autocomplete install`
+# NOTE that this has been manually edited to remove compinit, which is already
+# called below.
+# >>>> Vagrant command completion (start)
+fpath=(/opt/vagrant/embedded/gems/2.3.4/gems/vagrant-2.3.4/contrib/zsh $fpath)
+# <<<<  Vagrant command completion (end)
+
+## Initialise the completion system
+autoload -U compinit && compinit -u
+autoload -U +X bashcompinit && bashcompinit
+
+# This was added by doing `terraform -install-autocomplete`
+# NOTE: it doesn't actually seem to do anything though...
+complete -o nospace -C /opt/homebrew/bin/terraform
+
+# If we have asdf, use its completion stuff
+if [ -f $(brew --prefix asdf)/libexec/asdf.sh ]; then
+    . $(brew --prefix asdf)/etc/bash_completion.d/asdf.bash    
+fi
+
+#############################################################################
+# Configure more zsh magic that should happen at the end
+#############################################################################
+
+# If we have zsh-syntax-highlighter, use it. We're doing this last so it
+# can wrap everything we configured so far in nice colours.
+if [ -f $(brew --prefix)/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]; then
+    source $(brew --prefix)/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+fi
+
+# If we have zsh-autosuggestions, use it
+if [ -f $(brew --prefix)/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]; then
+    source $(brew --prefix)/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+fi
