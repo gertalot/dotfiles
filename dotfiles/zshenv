@@ -20,6 +20,17 @@
 #
 #######################################################################
 
+MACOS=false
+LINUX=false
+WSL=false
+case $(uname) in
+    Darwin) MACOS=true ;;
+    Linux)  LINUX=true ;;
+esac
+if [ -f /proc/sys/fs/binfmt_misc/WSLInterop ]; then
+    WSL=true
+fi
+
 # let's use chatgpt!
 if [ -f $HOME/.openai/api-key ]; then
     export OPENAI_API_KEY=$(cat $HOME/.openai/api-key)
@@ -46,7 +57,7 @@ fi
 eval "$($brew shellenv)"
 
 # If we have asdf, use it
-if [ -f $(brew --prefix asdf)/libexec/asdf.sh ]; then
+if $MACOS && [ -f $(brew --prefix asdf)/libexec/asdf.sh ]; then
     source $(brew --prefix asdf)/libexec/asdf.sh
 fi
 

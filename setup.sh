@@ -3,33 +3,22 @@
 # Configure an awesome development environment using zsh
 #############################################################################
 
-#############################################################################
-# set up variables
-#############################################################################
-PRG=$0
-DIR=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
-dotfiles="$DIR/dotfiles"
-DEST="$HOME"
-
-unset HELP YES_TO_ALL INSTALL
-DRYRUN=false
-YES_TO_ALL=false
-TEST_INSTALLED=true
-
-
-txtbyel="\033[1;33m"
-txtbred="\033[1;31m"
-txtbgrn="\033[1;32m"
-txtyel="\033[33m"
-txtblu="\033[34m"
-txtmag="\033[35m"
-txtcya="\033[36m"
-txtnorm="\033[0m"
-txtibyel="\033[1;7;33m"
 
 #############################################################################
 # User interaction functions
 #############################################################################
+
+
+txtbyel="$(tput bold)$(tput setaf 3)"
+txtbred="$(tput bold)$(tput setaf 1)"
+txtbgrn="$(tput bold)$(tput setaf 2)"
+txtyel="$(tput setaf 3)"
+txtblu="$(tput setaf 4)"
+txtmag="$(tput setaf 5)"
+txtcya="$(tput setaf 6)"
+txtnorm="$(tput setaf 7)$(tput sgr0)"
+txtibyel="$(tput smso)$(tput setaf 3)"
+
 
 usage() {
     echo "${txtbyel}USAGE:${txtnorm}" >&2
@@ -87,6 +76,40 @@ message_err() {
     echo "${txtbred}❌ $@${txtnorm}"
 }
 
+#############################################################################
+# First things first, do we even have zsh?
+#############################################################################
+# First, we can only run in zsh
+INTERPRETER=$(ps h -p $$ -o args='' | cut -f1 -d' ')
+if [ $(basename $INTERPRETER) != "zsh" ]; then
+    message_err "This script and the tools it installs are meant for zsh. Please install zsh first."
+    exit 1
+fi
+
+#############################################################################
+# set up variables
+#############################################################################
+PRG=$0
+DIR=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
+dotfiles="$DIR/dotfiles"
+DEST="$HOME"
+
+unset HELP YES_TO_ALL INSTALL
+DRYRUN=false
+YES_TO_ALL=false
+TEST_INSTALLED=true
+
+MACOS=false
+LINUX=false
+WSL=false
+case $(uname) in
+    Darwin) MACOS=true ;;
+    Linux)  LINUX=true ;;
+esac
+if [ -f /proc/sys/fs/binfmt_misc/WSLInterop ]; then
+    WSL=true
+fi
+
 # Prompt for multi-choice user input
 # Usage: ask promtp option1 option2 ...
 # Return value is the index of the selected option
@@ -97,9 +120,10 @@ ask() {
     unset DONE ABORT
     cur=1
     count=$#
+    echo $@[1]
     while [ -z "$DONE" ]; do
         # print the options, highlight the current one
-        echo -n "\r"
+        echo -ne "\r"
         for ((i = 1; i <= $count; i++)); do
             opt=$@[i]
             if [ $i -eq $cur ]; then
@@ -222,6 +246,17 @@ if $DRYRUN; then
     message_info "Running in dry-run mode. No changes will be made."
 fi
 
+############################################################################
+we need to run as root to install with apt on linux
+############################################################################
+if ! $DRYRUN && $LINUX; then
+     if [ $(id -u) -ne 0 ]; then
+        message_err "You need to run this as super-user on Linux with sudo -E"
+        exit 127
+    fi
+fi
+
+
 #############################################################################
 # Install all the magic
 #############################################################################
@@ -229,53 +264,59 @@ fi
 echo ""
 message "Configuring basic tools and zsh magic"
 
-# First things first. We need the XCode command line tools installed.
-if $TEST_INSTALLED && command -v xcode-select &> /dev/null && xpath=$( xcode-select --print-path ) && test -d "${xpath}" && test -x "${xpath}" ; then
-    message_ok "XCode command line tools are installed"
-else
-    echo ""
-    if ask_yna "XCode command line tools are not installed. Install them now? "; then
-        installcmd xcode-select --install
-        message_ok "XCode command line tools installed"
+# First things first. We need the XCode command line tools and homebrew installed for macOS.
+if $MACOS; then
+    if $TEST_INSTALLED && command -v xcode-select &> /dev/null && xpath=$( xcode-select --print-path ) && test -d "${xpath}" && test -x "${xpath}" ; then
+        message_ok "XCode command line tools are installed"
     else
-        message_err "XCode command line tools are required, so most things will break"
+        echo ""
+        if ask_yna "XCode command line tools are not installed. Install them now? "; then
+            installcmd xcode-select --install
+            message_ok "XCode command line tools installed"
+        else
+            message_err "XCode command line tools are required, so most things will break"
+        fi
     fi
-fi
 
-# We also really need homebrew. Just in case it's not on the PATH,
-# set it to where it might be
-if command -v brew &> /dev/null; then
-    brew="brew"
-elif [ -x /opt/homebrew/bin/brew ]; then
-    brew=/opt/homebrew/bin/brew
-elif [ -x /usr/local/bin/brew ]; then
-    brew=/usr/local/bin/brew
-else
-    brew=""
-fi
-if $TEST_INSTALLED && [ -n "$brew" ]; then
-    message_ok "Homebrew is installed"
-else
-    echo ""
-    message "Homebrew is not installed. This is the most widely used package manager for macOS"
-    message "Most of the tools that will be installed require homebrew."
-    if ask_yna "Install Homebrew? "; then
-        installcmd '/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
-        message_ok "Homebrew installed"
+    # We also really need homebrew. Just in case it's not on the PATH,
+    # set it to where it might be
+    if command -v brew &> /dev/null; then
+        brew="brew"
+    elif [ -x /opt/homebrew/bin/brew ]; then
+        brew=/opt/homebrew/bin/brew
+    elif [ -x /usr/local/bin/brew ]; then
+        brew=/usr/local/bin/brew
     else
-        message_err "homebrew is required, so most things will break"
-        brew=":"
+        brew=""
+    fi
+    if $TEST_INSTALLED && [ -n "$brew" ]; then
+        message_ok "Homebrew is installed"
+    else
+        echo ""
+        message "Homebrew is not installed. This is the most widely used package manager for macOS"
+        message "Most of the tools that will be installed require homebrew."
+        if ask_yna "Install Homebrew? "; then
+            installcmd '/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+            message_ok "Homebrew installed"
+        else
+            message_err "homebrew is required, so most things will break"
+            brew=":"
+        fi
     fi
 fi
 
 # PowerLevel10k for awesome prompts
-if $TEST_INSTALLED && [ -r $($brew --prefix)/opt/powerlevel10k ]; then
+if $TEST_INSTALLED && ($MACOS && [ -r $($brew --prefix)/opt/powerlevel10k ]) || [ -e $HOME/.powerlevel10k ]; then
     message_ok "PowerLevel10K is installed"
 else
     echo ""
     message "PowerLevel10K is not installed. This is an amazing prompt for zsh"
     if ask_yna "Install PowerLevel10K? "; then
-        installcmd $brew install powerlevel10k
+        if $MACOS; then
+            installcmd $brew install powerlevel10k
+        else
+            installcmd git clone --depth=1 https://github.com/romkatv/powerlevel10k.git $HOME/.powerlevel10k
+        fi
         message_ok "PowerLevel10K installed"
     else
         message "Skipping installation of PowerLevel10K"
@@ -315,13 +356,14 @@ else
 fi
 
 # zsh syntax highlighting
-if $TEST_INSTALLED && [ -r $($brew --prefix)/opt/zsh-syntax-highlighting ]; then
+if $TEST_INSTALLED && ($MACOS && [ -r $($brew --prefix)/opt/zsh-syntax-highlighting ]); then
     message_ok "zsh-syntax-highlighting is installed"
 else
     echo ""
     message "zsh-syntax-highlighting is not installed. This provides fish-like syntax highlighting for zsh"
     if ask_yna "Install zsh-syntax-highlighting? "; then
-        installcmd $brew install zsh-syntax-highlighting
+        $MACOS && installcmd $brew install zsh-syntax-highlighting
+        $LINUX && installcmd apt-get install zsh-syntax-hightlighting
         message_ok "zsh-syntax-highlighting installed"
     else
         message "Skipping installation of zsh-syntax-highlighting"
@@ -329,45 +371,51 @@ else
 fi
 
 # NerdFonts
-if $TEST_INSTALLED && $brew list --full-name | grep -q 'homebrew/cask-fonts/font-.*-nerd-font'; then
-    message_ok "one or more NerdFonts appear to be installed (make sure to set your terminal font to one of these)"
-    message_info "for a list of available fonts, run 'brew tap homebrew/cask-fonts' followed by 'brew search nerd-font'"
-else
-    echo ""
-    message "You don't appear to have any NerdFonts installed. These are highly recommended for PowerLevel10K and colorls."
-    message_info "NerdFonts are patched fonts that include a wide range of icons and symbols, ideal for a great terminal experience."
-    message_info "You can find out about NerdFonts at https://www.nerdfonts.com"
-    echo ""
-    message "Some popular NerdFonts are Meslo (variation of Apple's Menlo), FiraCode, and Hack."
-    if $YES_TO_ALL; then
-        message "'-y' option set; installing Meslo Nerd Font"
-        font="meslo-lg"
-    else
-        ask "Do you want me to install one of these for you?" "Meslo" "FiraCode" "Hack" "No" "Abort"
-        case $? in
-            0)  font="meslo-lg" ;;
-            1)  font="fira-code" ;;
-            2)  font="hack" ;;
-            3)  font="" ;;
-            4)  message "Exiting script"
-                exit 0
-                ;;
-        esac
-    fi
-    if [ -n "$font" ]; then
-        installcmd <<__EOF__
-            $brew tap homebrew/cask-fonts
-            $brew install --cask font-$font-nerd-font
-__EOF__
-        message_ok "$font Nerd Font installed. You can change your terminal font to $font in your Terminal settings."
-        message_info "You can install more fonts with 'brew install --cask font-<fontname>-nerd-font'"
-        message_info "for a list of available fonts, run 'brew search nerd-font'"
-    else
-        message "Skipping installation of the Meslo Nerd Font"
-        message_info "You can install fonts with 'brew tap homebrew/cask-fonts' followed by 'brew install --cask font-<fontname>-nerd-font'"
+if $MACOS; then
+    if $TEST_INSTALLED && $brew list --full-name | grep -q 'homebrew/cask-fonts/font-.*-nerd-font'; then
+        message_ok "one or more NerdFonts appear to be installed (make sure to set your terminal font to one of these)"
         message_info "for a list of available fonts, run 'brew tap homebrew/cask-fonts' followed by 'brew search nerd-font'"
+    else
+        echo ""
+        message "You don't appear to have any NerdFonts installed. These are highly recommended for PowerLevel10K and colorls."
+        message_info "NerdFonts are patched fonts that include a wide range of icons and symbols, ideal for a great terminal experience."
+        message_info "You can find out about NerdFonts at https://www.nerdfonts.com"
+        echo ""
+        message "Some popular NerdFonts are Meslo (variation of Apple's Menlo), FiraCode, and Hack."
+        if $YES_TO_ALL; then
+            message "'-y' option set; installing Meslo Nerd Font"
+            font="meslo-lg"
+        else
+            ask "Do you want me to install one of these for you?" "Meslo" "FiraCode" "Hack" "No" "Abort"
+            case $? in
+                0)  font="meslo-lg" ;;
+                1)  font="fira-code" ;;
+                2)  font="hack" ;;
+                3)  font="" ;;
+                4)  message "Exiting script"
+                    exit 0
+                    ;;
+            esac
+        fi
+        if [ -n "$font" ]; then
+            installcmd <<__EOF__
+                $brew tap homebrew/cask-fonts
+                $brew install --cask font-$font-nerd-font
+__EOF__
+            message_ok "$font Nerd Font installed. You can change your terminal font to $font in your Terminal settings."
+            message_info "You can install more fonts with 'brew install --cask font-<fontname>-nerd-font'"
+            message_info "for a list of available fonts, run 'brew search nerd-font'"
+        else
+            message "Skipping installation of the Meslo Nerd Font"
+            message_info "You can install fonts with 'brew tap homebrew/cask-fonts' followed by 'brew install --cask font-<fontname>-nerd-font'"
+            message_info "for a list of available fonts, run 'brew tap homebrew/cask-fonts' followed by 'brew search nerd-font'"
+        fi
+        echo ""
     fi
-    echo ""
+else
+    message_info "Installing Nerdfont for your terminal is HIGHLY recommended to make the most of Powerlevel10K."
+    message_info "See https://github.com/romkatv/powerlevel10k?tab=readme-ov-file#meslo-nerd-font-patched-for-powerlevel10k for details."
+    message_info "This script assumed you have followed the instructions to install the correct fonts."
 fi
 
 # colorls
