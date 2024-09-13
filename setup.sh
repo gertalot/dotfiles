@@ -1,7 +1,27 @@
-#! /bin/zsh
-#############################################################################
+#! /usr/bin/zsh
+##############################################################################
 # Configure an awesome development environment using zsh
-#############################################################################
+#
+# Copyright (c) 2024
+# Gert Verhoog [All rights reserved].
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+# 
+# Redistributions of source code must retain the above copyright notice, this
+# list of conditions and the following disclaimer.
+#
+# THIS SOFTWARE IS PROVIDED BY [Name of Organization] “AS IS” AND ANY EXPRESS
+# OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
+# NO EVENT SHALL [Name of Organisation] BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA,
+# OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+# LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+# NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+# EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+##############################################################################
 
 
 #############################################################################
@@ -85,6 +105,11 @@ if [ $(basename $INTERPRETER) != "zsh" ]; then
     message_err "This script and the tools it installs are meant for zsh. Please install zsh first."
     exit 1
 fi
+
+if [ $(basename $SHELL) != "zsh" ]; then
+    message_info "Zsh is installed, but it is not your login shell. To use zsh, on Linux, use the 'chsh' command."
+fi
+
 
 #############################################################################
 # set up variables
@@ -247,14 +272,14 @@ if $DRYRUN; then
 fi
 
 ############################################################################
-we need to run as root to install with apt on linux
+# we need to run as root to install with apt on linux
 ############################################################################
-if ! $DRYRUN && $LINUX; then
-     if [ $(id -u) -ne 0 ]; then
-        message_err "You need to run this as super-user on Linux with sudo -E"
-        exit 127
-    fi
-fi
+# if ! $DRYRUN && $LINUX; then
+#      if [ $(id -u) -ne 0 ]; then
+#         message_err "You need to run this as super-user on Linux with sudo -E"
+#         exit 127
+#     fi
+# fi
 
 
 #############################################################################
@@ -355,20 +380,20 @@ else
     fi
 fi
 
-# zsh syntax highlighting
-if $TEST_INSTALLED && ($MACOS && [ -r $($brew --prefix)/opt/zsh-syntax-highlighting ]); then
-    message_ok "zsh-syntax-highlighting is installed"
-else
-    echo ""
-    message "zsh-syntax-highlighting is not installed. This provides fish-like syntax highlighting for zsh"
-    if ask_yna "Install zsh-syntax-highlighting? "; then
-        $MACOS && installcmd $brew install zsh-syntax-highlighting
-        $LINUX && installcmd apt-get install zsh-syntax-hightlighting
-        message_ok "zsh-syntax-highlighting installed"
-    else
-        message "Skipping installation of zsh-syntax-highlighting"
-    fi
-fi
+# # zsh syntax highlighting
+# if $TEST_INSTALLED && ($MACOS && [ -r $($brew --prefix)/opt/zsh-syntax-highlighting ]); then
+#     message_ok "zsh-syntax-highlighting is installed"
+# else
+#     echo ""
+#     message "zsh-syntax-highlighting is not installed. This provides fish-like syntax highlighting for zsh"
+#     if ask_yna "Install zsh-syntax-highlighting? "; then
+#         $MACOS && installcmd $brew install zsh-syntax-highlighting
+#         $LINUX && installcmd apt-get install zsh-syntax-hightlighting
+#         message_ok "zsh-syntax-highlighting installed"
+#     else
+#         message "Skipping installation of zsh-syntax-highlighting"
+#     fi
+# fi
 
 # NerdFonts
 if $MACOS; then
@@ -414,22 +439,23 @@ __EOF__
     fi
 else
     message_info "Installing Nerdfont for your terminal is HIGHLY recommended to make the most of Powerlevel10K."
-    message_info "See https://github.com/romkatv/powerlevel10k?tab=readme-ov-file#meslo-nerd-font-patched-for-powerlevel10k for details."
+    message_info "See https://github.com/romkatv/powerlevel10k?tab=readme-ov-file#meslo-nerd-font-patched-for-powerlevel10k"
+    message_info "for details."
     message_info "This script assumed you have followed the instructions to install the correct fonts."
 fi
 
-# colorls
-if $TEST_INSTALLED && command -v colorls &> /dev/null; then
-    message_ok "colorls is installed"
-else
-    message "You don't have colorls installed. This is a replacement for ls that looks real nice."
-    if ask_yna "Install colorls? "; then
-        installcmd gem install --user-install colorls
-        message_ok "colorls installed. You can run it with 'colorls'"
-    else
-        message "Skipping installation of colorls"
-    fi
-fi
+# # colorls
+# if $TEST_INSTALLED && command -v colorls &> /dev/null; then
+#     message_ok "colorls is installed"
+# else
+#     message "You don't have colorls installed. This is a replacement for ls that looks real nice."
+#     if ask_yna "Install colorls? "; then
+#         installcmd gem install --user-install colorls
+#         message_ok "colorls installed. You can run it with 'colorls'"
+#     else
+#         message "Skipping installation of colorls"
+#     fi
+# fi
 
 
 # Use this project's .zshrc
@@ -498,7 +524,6 @@ else
     fi
 fi
 
-
 echo ""
 message "Configuring basic development tools"
 
@@ -524,25 +549,31 @@ else
     message_info "You can use asdf to manage versions of python, node, and other systems."
     message_info "For information about git, see https://asdf-vm.com/"
     if ask_yna "Install asdf? "; then
-        installcmd $brew install asdf
-        message_ok "asdf installed."
+        installcmd git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.14.1
+        message_ok "asdf v0.14.1 installed."
     else
         message "Skipping installation of asdf. Stuff will probably break, because several"
         message "tools that are installed with this script depend on asdf."
     fi
 fi
 
-# pre-commit
-if $TEST_INSTALLED && command -v pre-commit &> /dev/null; then
-    message_ok "pre-commit is installed"
-else
-    message "You don't have pre-commit installed. This is a tool for managing git hooks."
-    message_info "You can use pre-commit to configure git hooks that run before every commit."
-    message_info "For information about pre-commit, see https://pre-commit.com/"
-    if ask_yna "Install pre-commit? "; then
-        installcmd $brew install pre-commit
-        message_ok "pre-commit installed."
-    else
-        message "Skipping installation of pre-commit."
-    fi
-fi
+
+# asdf plugin add python
+# asdf plugin add nodejs
+
+# sudo apt install curl wget libncurses5-dev build-essential zlib1g-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev libsqlite3-dev libbz2-dev pkg-config liblzma-dev tk-dev -y
+
+# # pre-commit
+# if $TEST_INSTALLED && command -v pre-commit &> /dev/null; then
+#     message_ok "pre-commit is installed"
+# else
+#     message "You don't have pre-commit installed. This is a tool for managing git hooks."
+#     message_info "You can use pre-commit to configure git hooks that run before every commit."
+#     message_info "For information about pre-commit, see https://pre-commit.com/"
+#     if ask_yna "Install pre-commit? "; then
+#         installcmd $brew install pre-commit
+#         message_ok "pre-commit installed."
+#     else
+#         message "Skipping installation of pre-commit."
+#     fi
+# fi
