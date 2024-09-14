@@ -31,7 +31,7 @@ if [ -f /proc/sys/fs/binfmt_misc/WSLInterop ]; then
     WSL=true
 fi
 
-# let's use chatgpt!
+# let's use chatgpt if we have an api key
 if [ -f $HOME/.openai/api-key ]; then
     export OPENAI_API_KEY=$(cat $HOME/.openai/api-key)
 fi
@@ -88,7 +88,7 @@ fi
 if [ -f $HOME/.rye/env ]; then
     source "$HOME/.rye/env"
 fi
-# support for uv
+# support for rust and uv
 if [ -f $HOME/.cargo/env ]; then
     source "$HOME/.cargo/env"
 fi
@@ -101,23 +101,16 @@ export PATH="$MODULAR_HOME/pkg/packages.modular.com_mojo/bin${PATH+:$PATH}"
 # Make Go happy
 export PATH="$HOME/go/bin${PATH+:$PATH}"
 
-# Use Montoux scripts if we have them
-if [ -d $HOME/Code/montoux/engineering/scripts ]; then
-    export PATH="$HOME/Code/montoux/engineering/scripts${PATH+:$PATH}"
-fi
-
 # Add user gemdir binaries to PATH
 if command -v ruby 1>/dev/null 2>&1; then
     export PATH="$(ruby -r rubygems -e 'puts Gem.user_dir')/bin${PATH+:$PATH}"
 fi
 
-
 # If we've got anything in $HOME/opt/bin, make sure the shell looks at
-# that first (that's why this line is last in setting up PATH)
+# that first
 export PATH="$HOME/opt/bin${PATH+:$PATH}"
 
 # Set up nvm
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
-

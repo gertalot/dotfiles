@@ -1,4 +1,4 @@
-#! /usr/bin/zsh
+#! /bin/zsh
 ##############################################################################
 # Configure an awesome development environment using zsh
 #
@@ -323,6 +323,20 @@ if $MACOS; then
         if ask_yna "Install Homebrew? "; then
             installcmd '/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
             message_ok "Homebrew installed"
+            
+            # try to find the freshly installed homebrew.
+            # Not great that we have to repeat this from the
+            # section above, but I choose simplicity over DRY
+            # in this case.
+            if command -v brew &> /dev/null; then
+                brew="brew"
+            elif [ -x /opt/homebrew/bin/brew ]; then
+                brew=/opt/homebrew/bin/brew
+            elif [ -x /usr/local/bin/brew ]; then
+                brew=/usr/local/bin/brew
+            else
+                brew=""
+            fi
         else
             message_err "homebrew is required, so most things will break"
             brew=":"
@@ -380,69 +394,28 @@ else
     fi
 fi
 
-# # zsh syntax highlighting
-# if $TEST_INSTALLED && ($MACOS && [ -r $($brew --prefix)/opt/zsh-syntax-highlighting ]); then
-#     message_ok "zsh-syntax-highlighting is installed"
-# else
-#     echo ""
-#     message "zsh-syntax-highlighting is not installed. This provides fish-like syntax highlighting for zsh"
-#     if ask_yna "Install zsh-syntax-highlighting? "; then
-#         $MACOS && installcmd $brew install zsh-syntax-highlighting
-#         $LINUX && installcmd apt-get install zsh-syntax-hightlighting
-#         message_ok "zsh-syntax-highlighting installed"
-#     else
-#         message "Skipping installation of zsh-syntax-highlighting"
-#     fi
-# fi
-
-# NerdFonts
+# zsh syntax highlighting, doesn't work on linux currently
 if $MACOS; then
-    if $TEST_INSTALLED && $brew list --full-name | grep -q 'homebrew/cask-fonts/font-.*-nerd-font'; then
-        message_ok "one or more NerdFonts appear to be installed (make sure to set your terminal font to one of these)"
-        message_info "for a list of available fonts, run 'brew tap homebrew/cask-fonts' followed by 'brew search nerd-font'"
+    if $TEST_INSTALLED && [ -r $($brew --prefix)/opt/zsh-syntax-highlighting ]; then
+        message_ok "zsh-syntax-highlighting is installed"
     else
         echo ""
-        message "You don't appear to have any NerdFonts installed. These are highly recommended for PowerLevel10K and colorls."
-        message_info "NerdFonts are patched fonts that include a wide range of icons and symbols, ideal for a great terminal experience."
-        message_info "You can find out about NerdFonts at https://www.nerdfonts.com"
-        echo ""
-        message "Some popular NerdFonts are Meslo (variation of Apple's Menlo), FiraCode, and Hack."
-        if $YES_TO_ALL; then
-            message "'-y' option set; installing Meslo Nerd Font"
-            font="meslo-lg"
+        message "zsh-syntax-highlighting is not installed. This provides fish-like syntax highlighting for zsh"
+        if ask_yna "Install zsh-syntax-highlighting? "; then
+            installcmd $brew install zsh-syntax-highlighting
+            message_ok "zsh-syntax-highlighting installed"
         else
-            ask "Do you want me to install one of these for you?" "Meslo" "FiraCode" "Hack" "No" "Abort"
-            case $? in
-                0)  font="meslo-lg" ;;
-                1)  font="fira-code" ;;
-                2)  font="hack" ;;
-                3)  font="" ;;
-                4)  message "Exiting script"
-                    exit 0
-                    ;;
-            esac
+            message "Skipping installation of zsh-syntax-highlighting"
         fi
-        if [ -n "$font" ]; then
-            installcmd <<__EOF__
-                $brew tap homebrew/cask-fonts
-                $brew install --cask font-$font-nerd-font
-__EOF__
-            message_ok "$font Nerd Font installed. You can change your terminal font to $font in your Terminal settings."
-            message_info "You can install more fonts with 'brew install --cask font-<fontname>-nerd-font'"
-            message_info "for a list of available fonts, run 'brew search nerd-font'"
-        else
-            message "Skipping installation of the Meslo Nerd Font"
-            message_info "You can install fonts with 'brew tap homebrew/cask-fonts' followed by 'brew install --cask font-<fontname>-nerd-font'"
-            message_info "for a list of available fonts, run 'brew tap homebrew/cask-fonts' followed by 'brew search nerd-font'"
-        fi
-        echo ""
     fi
-else
-    message_info "Installing Nerdfont for your terminal is HIGHLY recommended to make the most of Powerlevel10K."
-    message_info "See https://github.com/romkatv/powerlevel10k?tab=readme-ov-file#meslo-nerd-font-patched-for-powerlevel10k"
-    message_info "for details."
-    message_info "This script assumed you have followed the instructions to install the correct fonts."
 fi
+
+# NerdFonts
+message_info "Installing Nerdfont for your terminal is HIGHLY recommended to make the most of Powerlevel10K."
+message_info "See https://github.com/romkatv/powerlevel10k?tab=readme-ov-file#meslo-nerd-font-patched-for-powerlevel10k"
+message_info "for details."
+message_info "This script assumed you have followed the instructions to install the correct fonts."
+
 
 # # colorls
 # if $TEST_INSTALLED && command -v colorls &> /dev/null; then
@@ -533,11 +506,15 @@ if $TEST_INSTALLED && command -v git &> /dev/null; then
 else
     message "You don't have git installed. Git is a widely used version control system."
     message_info "For information about git, see https://git-scm.com/"
-    if ask_yna "Install git? "; then
-        installcmd $brew install git
-        message_ok "git installed."
+    if $MACOS; then
+        if ask_yna "Install git? "; then
+            installcmd $brew install git
+            message_ok "git installed."
+        else
+            message "Skipping installation of git."
+        fi
     else
-        message "Skipping installation of git."
+        message_info "Installing git through this script is currently only supported on macOS"
     fi
 fi
 
@@ -557,11 +534,24 @@ else
     fi
 fi
 
+if $TEST_INSTALLED && command -v asdf &> /dev/null; then
+    message "Adding asdf plugins for python and nodejs"
+    installcmd asdf plugin add python
+    installcmd asdf pluging add nodejs
+    message_ok "asdf plugins for python and nodejs added. Install the version(s) you want to use with asdf."
+fi
 
-# asdf plugin add python
-# asdf plugin add nodejs
-
-# sudo apt install curl wget libncurses5-dev build-essential zlib1g-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev libsqlite3-dev libbz2-dev pkg-config liblzma-dev tk-dev -y
+if $LINUX; then
+    message_info "If you intend to use Python, you should install a number of extra apt packages:"
+    message_info "curl wget libncurses5-dev build-essential zlib1g-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev libsqlite3-dev libbz2-dev pkg-config liblzma-dev tk-dev"
+    message_info "note: this will use 'sudo apt'."
+    if ask_yna "Install these apt packages? "; then
+        installcmd sudo apt install curl wget libncurses5-dev build-essential zlib1g-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev libsqlite3-dev libbz2-dev pkg-config liblzma-dev tk-dev -y
+        message_ok "apt packages installed."
+    else
+        message "Skipping installation of apt packages."
+    fi
+fi
 
 # # pre-commit
 # if $TEST_INSTALLED && command -v pre-commit &> /dev/null; then
