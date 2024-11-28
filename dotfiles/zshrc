@@ -80,7 +80,7 @@ ZSH_DISABLE_COMPFIX=true
 #############################################################################
 # Support for the Warp terminal — automatically 'warpify' subshells
 #############################################################################
-printf '\eP$f{"hook": "SourcedRcFileForWarp", "value": { "shell": "zsh" }}\x9c'
+# printf '\eP$f{"hook": "SourcedRcFileForWarp", "value": { "shell": "zsh" }}\x9c'
 
 MACOS=false
 LINUX=false
@@ -122,9 +122,8 @@ fi
 # set terminal title for macOS terminal
 precmd () {print -Pn "\e]0;%n@%m  %~\a"}
 
-# use 1Password ssh-agent stuff. This assumes you have a symbolic link from
-# ~/Library/Group\ Containers/2BUA8C4S2C.com.1password/ to ~/.1password
-export SSH_AUTH_SOCK=$HOME/.1password/t/agent.sock
+# ssh agent
+eval $(ssh-agent -s) &> /dev/null
 
 #############################################################################
 # Configure completion magic
