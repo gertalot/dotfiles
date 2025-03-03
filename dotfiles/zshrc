@@ -176,7 +176,11 @@ complete -o nospace -C /opt/homebrew/bin/terraform
 
 # If we have asdf, use its completion stuff
 if $MACOS && [ -f $(brew --prefix asdf)/libexec/asdf.sh ]; then
-    . $(brew --prefix asdf)/etc/bash_completion.d/asdf.bash    
+    if [ -f $(brew --prefix asdf)/etc/bash_completion.d/asdf.bash ]; then
+        . $(brew --prefix asdf)/etc/bash_completion.d/asdf.bash
+    elif [ -f $(brew --prefix asdf)/etc/bash_completion.d/asdf ]; then
+        . $(brew --prefix asdf)/etc/bash_completion.d/asdf
+    fi
 elif [ -f $HOME/.asdf/asdf.sh ]; then
     . $HOME/.asdf/asdf.sh
 fi
