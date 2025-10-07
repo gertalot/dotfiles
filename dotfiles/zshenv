@@ -20,6 +20,8 @@
 #
 #######################################################################
 
+#echo "ZSHENV START: $(date)" >> /tmp/zsh-startup.log
+
 MACOS=false
 LINUX=false
 WSL=false
@@ -95,8 +97,8 @@ fi
 
 # Make Modular's Mojo happy
 # (super fast python-like compiler, see https://www.modular.com/max/mojo)
-export MODULAR_HOME="$HOME/.modular"
-export PATH="$MODULAR_HOME/pkg/packages.modular.com_mojo/bin${PATH+:$PATH}"
+# export MODULAR_HOME="$HOME/.modular"
+# export PATH="$MODULAR_HOME/pkg/packages.modular.com_mojo/bin${PATH+:$PATH}"
 
 # Make Go happy
 export PATH="$HOME/go/bin${PATH+:$PATH}"
@@ -104,6 +106,16 @@ export PATH="$HOME/go/bin${PATH+:$PATH}"
 # Add user gemdir binaries to PATH
 if command -v ruby 1>/dev/null 2>&1; then
     export PATH="$(ruby -r rubygems -e 'puts Gem.user_dir')/bin${PATH+:$PATH}"
+fi
+
+# yarn global bin
+if command -v yarn 1>/dev/null 2>&1; then
+    export PATH="$(yarn global bin)${PATH+:$PATH}"
+fi
+
+# npm global bin
+if command -v npm 1>/dev/null 2>&1; then
+    export PATH="$(npm config get prefix)/bin${PATH+:$PATH}"
 fi
 
 # If we've got anything in $HOME/opt/bin, make sure the shell looks at
@@ -114,3 +126,5 @@ export PATH="$HOME/opt/bin${PATH+:$PATH}"
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+
+#echo "ZSHENV END: $(date)" >> /tmp/zsh-startup.log

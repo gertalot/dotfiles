@@ -63,6 +63,9 @@
 #
 #############################################################################
 
+# Make zsh smart when we're in a Cursor session
+eval "$(~/.local/bin/cursor-agent shell-integration zsh)"
+
 # don't complain when doing sudo -s
 # This is considered Bad Practice™ I think, but also seems the only way to
 # deal with the issue of zcompinit complaining about "insecure directories"
@@ -85,6 +88,8 @@ ZSH_DISABLE_COMPFIX=true
 MACOS=false
 LINUX=false
 WSL=false
+VSCODE=false
+
 case $(uname) in
     Darwin) MACOS=true ;;
     Linux)  LINUX=true ;;
@@ -92,21 +97,29 @@ esac
 if [ -f /proc/sys/fs/binfmt_misc/WSLInterop ]; then
     WSL=true
 fi
-
-if $MACOS && [ -r $(brew --prefix)/opt/powerlevel10k ]; then
-    # location of the theme depends on the version you've got installed
-    if [ -f $(brew --prefix)/opt/powerlevel10k/powerlevel10k.zsh-theme ]; then
-        source $(brew --prefix)/opt/powerlevel10k/powerlevel10k.zsh-theme
-    elif [ -f $(brew --prefix)/opt/powerlevel10k/share/powerlevel10k/powerlevel10k.zsh-theme ]; then
-        source $(brew --prefix)/opt/powerlevel10k/share/powerlevel10k/powerlevel10k.zsh-theme
-    fi
-elif $LINUX && [ -e $HOME/.powerlevel10k ]; then
-    source $HOME/.powerlevel10k/powerlevel10k.zsh-theme
+if [[ "$TERM_PROGRAM" == "vscode" || "$TERM_PROGRAM" == "cursor" ]]; then
+    VSCODE=true
 fi
 
-# To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
-[[ ! -f $HOME/.p10k.zsh ]] || source $HOME/.p10k.zsh
+# only load Powerlevel10k if we're not running in VSCode or Cursor since the prompt confuses Cursor
+if ! $VSCODE; then
+    if $MACOS && [ -r $(brew --prefix)/opt/powerlevel10k ]; then
+        # location of the theme depends on the version you've got installed
+        if [ -f $(brew --prefix)/opt/powerlevel10k/powerlevel10k.zsh-theme ]; then
+            source $(brew --prefix)/opt/powerlevel10k/powerlevel10k.zsh-theme
+        elif [ -f $(brew --prefix)/opt/powerlevel10k/share/powerlevel10k/powerlevel10k.zsh-theme ]; then
+            source $(brew --prefix)/opt/powerlevel10k/share/powerlevel10k/powerlevel10k.zsh-theme
+        fi
+    elif $LINUX && [ -e $HOME/.powerlevel10k ]; then
+        source $HOME/.powerlevel10k/powerlevel10k.zsh-theme
+    fi
 
+    # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
+    [[ ! -f $HOME/.p10k.zsh ]] || source $HOME/.p10k.zsh
+
+    # set terminal title for macOS terminal
+    precmd () {print -Pn "\e]0;%n@%m  %~\a"}
+fi
 
 #############################################################################
 # some basic stuff
@@ -119,11 +132,13 @@ else
     alias ls="ls -G --color=auto"
 fi
 
-# set terminal title for macOS terminal
-precmd () {print -Pn "\e]0;%n@%m  %~\a"}
-
 # ssh agent
 eval $(ssh-agent -s) &> /dev/null
+
+# direnv hook
+if command -v direnv &> /dev/null; then
+    eval "$(direnv hook zsh)"
+fi
 
 #############################################################################
 # Configure completion magic
@@ -167,12 +182,8 @@ fpath=(/opt/vagrant/embedded/gems/2.3.4/gems/vagrant-2.3.4/contrib/zsh $fpath)
 # <<<<  Vagrant command completion (end)
 
 ## Initialise the completion system
-autoload -U compinit && compinit -u
-autoload -U +X bashcompinit && bashcompinit
-
-# This was added by doing `terraform -install-autocomplete`
-# NOTE: it doesn't actually seem to do anything though...
-complete -o nospace -C /opt/homebrew/bin/terraform
+autoload -Uz compinit && compinit -u
+autoload -Uz +X bashcompinit && bashcompinit
 
 # If we have asdf, use its completion stuff
 if $MACOS && [ -f $(brew --prefix asdf)/libexec/asdf.sh ]; then
@@ -205,5 +216,8 @@ if $MACOS && [ -f $(brew --prefix)/share/zsh-autosuggestions/zsh-autosuggestions
     source $(brew --prefix)/share/zsh-autosuggestions/zsh-autosuggestions.zsh
 fi
 
-# To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
-[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+# use local claude
+alias claude="/Users/gert/.claude/local/claude"
+
+autoload -U +X bashcompinit && bashcompinit
+complete -o nospace -C /opt/homebrew/bin/terraform terraform

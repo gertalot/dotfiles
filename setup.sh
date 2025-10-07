@@ -7,7 +7,7 @@
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
-# 
+#
 # Redistributions of source code must retain the above copyright notice, this
 # list of conditions and the following disclaimer.
 #
@@ -323,7 +323,7 @@ if $MACOS; then
         if ask_yna "Install Homebrew? "; then
             installcmd '/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
             message_ok "Homebrew installed"
-            
+
             # try to find the freshly installed homebrew.
             # Not great that we have to repeat this from the
             # section above, but I choose simplicity over DRY
@@ -415,21 +415,6 @@ message_info "Installing Nerdfont for your terminal is HIGHLY recommended to mak
 message_info "See https://github.com/romkatv/powerlevel10k?tab=readme-ov-file#meslo-nerd-font-patched-for-powerlevel10k"
 message_info "for details."
 message_info "This script assumed you have followed the instructions to install the correct fonts."
-
-
-# # colorls
-# if $TEST_INSTALLED && command -v colorls &> /dev/null; then
-#     message_ok "colorls is installed"
-# else
-#     message "You don't have colorls installed. This is a replacement for ls that looks real nice."
-#     if ask_yna "Install colorls? "; then
-#         installcmd gem install --user-install colorls
-#         message_ok "colorls installed. You can run it with 'colorls'"
-#     else
-#         message "Skipping installation of colorls"
-#     fi
-# fi
-
 
 # Use this project's .zshrc
 if $TEST_INSTALLED && [ -r $HOME/.zshrc ]; then
@@ -537,7 +522,7 @@ fi
 if $TEST_INSTALLED && command -v asdf &> /dev/null; then
     message "Adding asdf plugins for python and nodejs"
     installcmd asdf plugin add python
-    installcmd asdf pluging add nodejs
+    installcmd asdf plugin add nodejs
     message_ok "asdf plugins for python and nodejs added. Install the version(s) you want to use with asdf."
 fi
 
@@ -552,6 +537,21 @@ if $LINUX; then
         message "Skipping installation of apt packages."
     fi
 fi
+
+# Install Rust toolchain
+if $TEST_INSTALLED && command -v rustup &> /dev/null; then
+    message_ok "Rust toolchain is already installed"
+else
+    message "You don't have the Rust tools installed (using 'rustup')."
+    if ask_yna "Install Rust tools?"; then
+        installcmd curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+        message_ok "Rust toolchain installed."
+    else
+        message "Skipping installation of Rust tools"
+    fi
+fi
+
+
 
 # # pre-commit
 # if $TEST_INSTALLED && command -v pre-commit &> /dev/null; then
