@@ -64,7 +64,8 @@
 #############################################################################
 
 # Make zsh smart when we're in a Cursor session
-eval "$(~/.local/bin/cursor-agent shell-integration zsh)"
+# NOTE this actually breaks Cursor so actually don't do this
+# eval "$(~/.local/bin/cursor-agent shell-integration zsh)"
 
 # don't complain when doing sudo -s
 # This is considered Bad Practice™ I think, but also seems the only way to
