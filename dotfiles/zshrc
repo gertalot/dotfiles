@@ -202,6 +202,11 @@ if [ -n "$ASDF_DIR" ]; then
     fpath=(${ASDF_DIR}/completions $fpath)
 fi
 
+# If we have Beads <https://github.com/steveyegge/beads>, install its completions
+if command -v bd &> /dev/null; then
+    eval "$(bd completion zsh)"
+fi
+
 #############################################################################
 # Configure more zsh magic that should happen at the end
 #############################################################################
@@ -217,8 +222,11 @@ if $MACOS && [ -f $(brew --prefix)/share/zsh-autosuggestions/zsh-autosuggestions
     source $(brew --prefix)/share/zsh-autosuggestions/zsh-autosuggestions.zsh
 fi
 
-# use local claude
-alias claude="/Users/gert/.claude/local/claude"
+# use local claude if installed
+if [ -f $HOME/.claude/local/claude ]; then
+    alias claude="$HOME/.claude/local/claude"
+fi
 
 autoload -U +X bashcompinit && bashcompinit
 complete -o nospace -C /opt/homebrew/bin/terraform terraform
+

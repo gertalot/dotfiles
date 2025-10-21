@@ -20,8 +20,6 @@
 #
 #######################################################################
 
-#echo "ZSHENV START: $(date)" >> /tmp/zsh-startup.log
-
 MACOS=false
 LINUX=false
 WSL=false
@@ -33,7 +31,7 @@ if [ -f /proc/sys/fs/binfmt_misc/WSLInterop ]; then
     WSL=true
 fi
 
-# let's use chatgpt if we have an api key
+# let's use openai if we have an api key
 if [ -f $HOME/.openai/api-key ]; then
     export OPENAI_API_KEY=$(cat $HOME/.openai/api-key)
 fi
@@ -126,5 +124,3 @@ export PATH="$HOME/opt/bin${PATH+:$PATH}"
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
-
-#echo "ZSHENV END: $(date)" >> /tmp/zsh-startup.log
