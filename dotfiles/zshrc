@@ -63,10 +63,6 @@
 #
 #############################################################################
 
-# Make zsh smart when we're in a Cursor session
-# NOTE this actually breaks Cursor so actually don't do this
-# eval "$(~/.local/bin/cursor-agent shell-integration zsh)"
-
 # don't complain when doing sudo -s
 # This is considered Bad Practice™ I think, but also seems the only way to
 # deal with the issue of zcompinit complaining about "insecure directories"
@@ -222,10 +218,6 @@ if $MACOS && [ -f $(brew --prefix)/share/zsh-autosuggestions/zsh-autosuggestions
     source $(brew --prefix)/share/zsh-autosuggestions/zsh-autosuggestions.zsh
 fi
 
-# use local claude if installed
-if [ -f $HOME/.claude/local/claude ]; then
-    alias claude="$HOME/.claude/local/claude"
-fi
 
 autoload -U +X bashcompinit && bashcompinit
 complete -o nospace -C /opt/homebrew/bin/terraform terraform
